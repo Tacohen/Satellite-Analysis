@@ -1,0 +1,88 @@
+.bar
+{
+	margin:0px left;
+	width: 100%; 
+	height: 32px; 
+	background: #c1bdae;
+}
+
+.item
+{
+	text-align: center;
+	width: 250;
+}
+
+#plans
+{
+	float: left;
+	
+}
+
+#editStuff
+{
+	width: 200;
+	padding-left:2cm;
+	
+}
+
+#selectLabel
+{
+	color: red;
+}
+
+#content
+{
+	text-align:left;
+}
+
+#thebody
+{
+	text-align: center;
+}
+.error{
+	font-size: 50%;
+	color: red;
+}
+#error
+{
+	font-size: 50%;
+	color: red;
+}
+body
+{
+	background-color: #f7f2de;
+	font-family: "Georgia";
+	font-size: 150%;
+	
+}
+
+#a
+{
+	color: black;
+}
+
+
+.h2
+{
+	color: black;
+	text-align: center;
+}
+h4{
+	font-size: 14px;
+}
+.div
+{
+	background-color: teal;
+	border:solid 6px red;
+}
+
+.selector{
+	width:800px;
+}
+.selectorItem{
+	width: 25%;
+}
+.download {
+width: 17em;
+margin: 2em 0 2em 10em;
+}

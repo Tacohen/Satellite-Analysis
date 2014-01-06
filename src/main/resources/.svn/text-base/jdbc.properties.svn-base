@@ -1,0 +1,82 @@
+# Properties file with JDBC and JPA settings.
+#
+# Applied by <context:property-placeholder location="jdbc.properties"/> from
+# various application context XML files (e.g., "applicationContext-*.xml").
+# Targeted at system administrators, to avoid touching the context XML files.
+
+
+#-------------------------------------------------------------------------------
+# Common Settings
+
+#hibernate.generate_statistics=true
+#hibernate.show_sql=true
+#jpa.showSql=true
+
+#-------------------------------------------------------------------------------
+# PosrgreSQL Settings
+
+jdbc.driverClassName=org.postgresql.Driver
+jdbc.url=jdbc:postgresql://localhost:5432/miic
+jdbc.username=postgres
+jdbc.password=letmeindb
+
+# Properties that control the population of schema and data for a new data source
+#jdbc.initLocation=classpath:gov/nasa/miic/db/initDB.txt
+#jdbc.dataLocation=classpath:gov/nasa/miic/db/populateDB.txt
+
+# Property that determines which Hibernate dialect to use
+# (only applied with "applicationContext-hibernate.xml")
+hibernate.dialect=org.hibernate.dialect.PostgreSQL82Dialect
+hibernate.hbm2ddl.auto=update
+
+# Property that determines which JPA DatabasePlatform to use with TopLink Essentials
+#jpa.databasePlatform=oracle.toplink.essentials.platform.database.MySQL4Platform
+
+# Property that determines which database to use with an AbstractJpaVendorAdapter
+jpa.database=POSTGRESQL
+
+
+#-------------------------------------------------------------------------------
+# HSQL Settings
+
+#jdbc.driverClassName=org.hsqldb.jdbcDriver
+#jdbc.url=jdbc:hsqldb:mem:miic
+##jdbc.url=jdbc:hsqldb:file:/C:/MIIC/miicdb;hsqldb.sqllog=3;hsqldb.applog=3
+# with hsql debugging
+##jdbc.url=jdbc:hsqldb:mem:miic;hsqldb.sqllog=3;hsqldb.applog=3
+#jdbc.username=sa
+#jdbc.password=
+
+# Properties that control the population of schema and data for a new data source
+#jdbc.initLocation=classpath:db/hsqldb/initDB.txt
+#jdbc.dataLocation=classpath:db/hsqldb/populateDB.txt
+
+# Property that determines which Hibernate dialect to use
+# (only applied with "applicationContext-hibernate.xml")
+#hibernate.dialect=org.hibernate.dialect.HSQLDialect
+
+# Property that determines which database to use with an AbstractJpaVendorAdapter
+#jpa.database=HSQL
+
+
+#-------------------------------------------------------------------------------
+# MySQL Settings
+
+#jdbc.driverClassName=com.mysql.jdbc.Driver
+#jdbc.url=jdbc:mysql://localhost:3306/miic
+#jdbc.username=root
+#jdbc.password=
+
+# Properties that control the population of schema and data for a new data source
+#jdbc.initLocation=classpath:db/mysql/initDB.txt
+#jdbc.dataLocation=classpath:db/mysql/populateDB.txt
+
+# Property that determines which Hibernate dialect to use
+# (only applied with "applicationContext-hibernate.xml")
+#hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+# Property that determines which JPA DatabasePlatform to use with TopLink Essentials
+#jpa.databasePlatform=oracle.toplink.essentials.platform.database.MySQL4Platform
+
+# Property that determines which database to use with an AbstractJpaVendorAdapter
+#jpa.database=MYSQL

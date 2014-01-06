@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context"
+		xmlns:tx="http://www.springframework.org/schema/tx"
+		xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- use declarative transactions -->
+	<tx:annotation-driven/>
+	
+	<!-- import the hibernate definition -->
+    <import resource="applicationContext-hibernate.xml"/>
+    
+<!-- Configurer that replaces ${...} placeholders with values from a properties file -->	
+	<context:property-placeholder location="classpath:miic.properties" ignore-unresolvable="true"/>
+
+<!--
+		Activates various annotations to be detected in bean classes:
+		Spring's @Required and @Autowired, as well as JSR 250's @Resource.
+	-->
+	<context:annotation-config/>
+	
+	<bean id="icPlanValidator" class="wm.edu.cs420.Data.PlanValidator"/>
+	<bean id="analysisValidator" class="wm.edu.cs420.Data.AnalysisValidator"/>
+	<bean id="filterValidator" class="wm.edu.cs420.Data.FilterValidator"/>
+	<bean id="customPlanVal" class="wm.edu.cs420.Data.CustomPlanValidator"/>
+	<!-- MIIC service interface, used primarily by web controllers -->
+	<bean id="miicService" class="gov.nasa.miic.planprocessing.MIICServiceImpl">
+		<property name="MIICDAO" ref="miicDAO"/>
+		<property name="execFactory" ref="execFactory"/>
+	</bean>
+	
+	<bean id="cs420Service" class="wm.edu.cs420.Data.CS420Service"/>
+	
+	<bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.MessageDigestPasswordEncoder">
+     	<constructor-arg value="MD5"/>
+ 	</bean>
+	
+	<!-- A data variable plotter that uses JFree Chart -->
+	<bean id="varPlotter" name="regPlotter" class="gov.nasa.miic.graphics.JFreePlotter"/>
+
+	<!-- Create plan executors using OPeNDAP -->
+	<bean id="execFactory" class="gov.nasa.miic.planprocessing.ICPlanExecutorFactory">
+		<constructor-arg ref="miicDAO"/>
+		<property name="leoGeoPredictor" ref="leoGeoPredictor"/>
+		<property name="leoLeoPredictor" ref="leoLeoPredictor"/>
+		<property name="dataCollectors">
+			<list>
+				<ref bean="HistogramCollector"/>
+				<ref bean="IFOVCollector"/>
+				<ref bean="eagridCollector"/>
+				
+			</list>
+		</property>
+	</bean>
+
+	<!-- An OPeNDAP data collector for equal-angle GRID formatted data -->
+	<bean id="eagridCollector" class="gov.nasa.miic.opendap.OPeNDAPDataCollector">
+		<!-- Type of data -->
+		<constructor-arg value="Grid2D"/>
+		<!-- OPeNDAP server(s) -->
+		<constructor-arg ref="opendapCache"/>
+		<!-- Templates to use when generating opendap query string -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.TemplateOPeNDAPQueryGenerator">
+				<constructor-arg>
+					<map>
+						<entry key="GRID_VARS"> 
+							<bean class="gov.nasa.miic.opendap.DataVarsFormatter"/>
+						</entry>
+					</map>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+		<!-- How to merge data together -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.GridMerger"/>
+		</constructor-arg>		
+		<!-- is parallel collection of target/reference OK? -->
+		<constructor-arg value="true"/> 	
+	</bean>
+	
+	<!-- An OPeNDAP data collector for IFOVs -->
+	<bean id="IFOVCollector" class="gov.nasa.miic.opendap.OPeNDAPDataCollector">
+		<!-- Type of data -->
+		<constructor-arg value="IFOV"/>
+		<!-- OPeNDAP server(s) -->
+		<constructor-arg ref="opendapCache"/>
+		<!-- Templates to use when generating opendap query string -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.TemplateOPeNDAPQueryGenerator">
+				<constructor-arg>
+					<map>				
+						<entry key="GRID_VARS"> 
+							<bean class="gov.nasa.miic.opendap.DataVarsFormatter"/>
+						</entry>
+						<entry key="RSR">
+							<bean class ="gov.nasa.miic.opendap.RSRFormatter"/>
+						</entry>
+						<entry key="IFOV">
+							<bean class ="gov.nasa.miic.opendap.IFOVFormatter"/>
+						</entry>
+					</map>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+		<!-- How to merge data together -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.IFOVMerger"/>
+		</constructor-arg>		
+		<!-- is parallel collection of target/reference OK? -->
+		<constructor-arg value="false"/> 	
+	</bean>
+	
+	<!-- An OPeNDAP data collector for Histogtrams -->
+	<bean id="HistogramCollector" class="gov.nasa.miic.opendap.OPeNDAPDataCollector">
+		<!-- Type of data -->
+		<constructor-arg value="Histogram2D"/>
+		<!-- OPeNDAP server(s) -->
+		<constructor-arg ref="opendapCache"/>
+		<!-- Templates to use when generating opendap query string -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.TemplateOPeNDAPQueryGenerator">
+				<constructor-arg>
+					<map>				
+						<entry key="HISTO_VARS"> 
+							<bean class="gov.nasa.miic.opendap.HistogramDataFormatter"/>
+						</entry>
+						<entry key="GOES_HISTO_VARS">
+							<bean class ="gov.nasa.miic.opendap.HistogramGOESDataFormatter"/>
+						</entry>						
+					</map>
+				</constructor-arg>
+			</bean>
+		</constructor-arg>
+		<!-- How to merge data together -->
+		<constructor-arg>
+			<bean class="gov.nasa.miic.opendap.HistogramMerger"/>
+		</constructor-arg>		
+		<!-- is parallel collection of target/reference OK? -->
+		<constructor-arg value="false"/> 	
+	</bean>
+	
+	<!-- For OPeNDAP: retrieves data -->
+	<bean id="opendapCache" class="gov.nasa.miic.opendap.OPeNDAPFileCache">
+		<constructor-arg value="${opendapServer}"/>
+		<constructor-arg value="${DODSfolder}"/>
+		<constructor-arg value="${maxOPeNDAPFetch}"/> 
+		<constructor-arg ref="miicDAO"/>
+		<constructor-arg value="${serverCacheMaxHours}"/> 
+	</bean>
+
+	
+	
+	<bean id="leoGeoPredictor" class="gov.nasa.miic.eventprediction.PredictorImpl">
+		<constructor-arg ref="tleFactory"/>
+		<constructor-arg>
+			<bean class="gov.nasa.miic.eventprediction.GEOvLEOswath"/>
+		</constructor-arg>
+		<property name="ephemerisTimestep" value="0.16666666666666666666666666666"/>
+		<constructor-arg value="7"/>
+	</bean>
+	
+	<bean id="leoLeoPredictor" class="gov.nasa.miic.eventprediction.PredictorImpl">
+		<constructor-arg ref="tleFactory"/>
+		<constructor-arg>
+			<bean class="gov.nasa.miic.eventprediction.LEOvLEOpyramid"/>
+		</constructor-arg>
+		<property name="ephemerisTimestep" value="0.016666666666666666666666666666"/>
+		<constructor-arg value="7"/> 
+	</bean>
+	
+	<bean id="tleFactory" class="gov.nasa.miic.tle.TLEFactory">		
+		<constructor-arg>
+			<bean class="gov.nasa.miic.tle.CGITLE">
+				<constructor-arg value="${TLEserverbase}"/>
+			</bean>
+		</constructor-arg>
+	</bean>
+	
+	
+	
+	
+	<!--  A bean to plot data vars (dataVarPlotter) and regressions (regressionPlotter) -->
+	<bean id="dataVarPlotter" name="regressionPlotter" class="gov.nasa.miic.graphics.JFreePlotter"/>
+
+
+	<!-- Add some sample MIIC data to database for testing -->
+	<bean class="gov.nasa.miic.persistence.PrepareDataStore" init-method="storeToDatabase">
+		<property name="instruments">
+			<list>
+				<ref bean="goes13"/>
+				<ref bean="goes12"/>
+				<ref bean="modisaqua"/>
+				<ref bean="envisat"/>
+			</list>
+		</property>
+		<property name="plans">
+			<list/>
+		</property>
+		<property name="miicService" ref="miicService"/>
+	</bean>
+
+	
+    <bean id="goes13" class="gov.nasa.miic.common.Instrument">
+        <property name="satID" value="29155"/>
+        <property name="name" value="goes13"/>
+        <property name="fileDuration" value="3600"/>        
+        <property name="type" value="GEO"/>
+        <property name="fileNameFormat" value="MCIDAS\.G-13\.(\d{4})\.(\d{2})\.(\d{2})\.(\d{4})\.08K\.bin"/>
+        <property name="fileStartDatePattern" value="yyyyMMddHHmm"/>
+        <property name="dataVariables">
+        	<bean class="gov.nasa.miic.opendap.OPeNDAPDASParser" factory-method="GetVariablesFromDAS">
+        		<constructor-arg value="classpath:/gov/nasa/miic/opendap/goes.das"/>
+        		<constructor-arg value="goes13"/>
+        	</bean>
+        </property>
+        <property name="providerInfo">
+        	<map>
+<!--         		<entry key=".*_Grid2D" value="?eageogrid(.5,GRID_VAR,TIME,GRID_VAR,latitude,GRID_VAR,longitude,GRID_VAR,channel_data,&quot;0&quot;,-99,FILTER_VAR,latitude,{latS},{latN},FILTER_VAR,longitude,{lonW},{lonE})"/> -->
+        		<entry key=".*_Grid2D" value="?eageogrid(.5,{GRID_VARS},FILTER_VAR,latitude,{latS},{latN},FILTER_VAR,longitude,{lonW},{lonE})"/>
+        	</map>
+        </property>       
+    </bean>
+    <bean id="goes12" class="gov.nasa.miic.common.Instrument">
+        <property name="satID" value="26871"/>
+        <property name="name" value="goes12"/>
+        <property name="fileDuration" value="3600"/>        
+        <property name="type" value="GEO"/>
+        <property name="fileNameFormat" value="MCIDAS\.G-12\.(\d{4})\.(\d{2})\.(\d{2})\.(\d{4})\.08K\.bin"/>
+        <property name="fileStartDatePattern" value="yyyyMMddHHmm"/>
+        <property name="dataVariables">
+        	<bean class="gov.nasa.miic.opendap.OPeNDAPDASParser" factory-method="GetVariablesFromDAS">
+        		<constructor-arg value="classpath:/gov/nasa/miic/opendap/goes.das"/>
+        		<constructor-arg value="goes12"/>
+        	</bean>
+        </property>
+        <property name="providerInfo">
+        	<map>
+        		<!-- <entry key=".*_Grid2D" value="?eageogrid(.5,GRID_VAR,TIME,GRID_VAR,latitude,GRID_VAR,longitude,GRID_VAR,channel_data,&quot;0&quot;,-99,FILTER_VAR,latitude,{latS},{latN},FILTER_VAR,longitude,{lonW},{lonE})"/>-->
+        		<entry key=".*_Grid2D" value="?eageogrid(.5,{GRID_VARS},FILTER_VAR,latitude,{latS},{latN},FILTER_VAR,longitude,{lonW},{lonE})"/>
+        	</map>
+        </property>      
+    </bean>
+    <bean id="modisaqua" class="gov.nasa.miic.common.Instrument">
+        <property name="satID" value="27424"/>
+        <property name="name" value="modisaqua"/> 
+        <property name="fileDuration" value="300"/>
+        <property name="fileNameFormat" value="MYD021KM\.A(\d{7})\.(\d{4})\.\d{3}\.\d{13}\.hdf"/>
+        <property name="fileStartDatePattern" value="yyyyDDDHHmm"/>
+        <property name="type" value="LEO"/>
+        <property name="dataVariables">
+        	<bean class="gov.nasa.miic.opendap.OPeNDAPDASParser" factory-method="GetVariablesFromDAS">
+        		<constructor-arg value="classpath:/gov/nasa/miic/opendap/modisaqua.das"/>
+        		<constructor-arg value="modisaqua"/>
+        	</bean>
+        </property>
+        <property name="providerInfo">
+        	<map>
+				<!-- <entry key=".*_Grid2D" value="?eamodisgrid(.5,GRID_VAR,TIME,GRID_VAR,Latitude,GRID_VAR,Longitude,GRID_VAR,EV_250_Aggr1km_RefSB,&quot;1&quot;,GRID_VAR,SensorAzimuth,GRID_VAR,SensorZenith,GRID_VAR,SolarZenith,GRID_VAR,SolarAzimuth,FILTER_VAR,Latitude,{latS},{latN},FILTER_VAR,Longitude,{lonW},{lonE})"/>-->
+        		<entry key=".*_Grid2D" value="?eamodisgrid(.5,{GRID_VARS},FILTER_VAR,Latitude,{latS},{latN},FILTER_VAR,Longitude,{lonW},{lonE})"/>
+        		<entry key="TARGET_IFOV" value="?modisspatialconv({IFOVS},GRID_VAR,TIME,GRID_VAR,EV_250_Aggr1km_RefSB,&quot;1&quot;,GRID_VAR,SensorAzimuth,GRID_VAR,SensorZenith,GRID_VAR,SolarZenith,GRID_VAR,SolarAzimuth)"/>        		
+        	</map>
+        </property>
+        <property name="RSR">
+        	<list>
+        		<list>
+        			<value>613.3</value><value>615</value><value>618</value><value>620</value><value>623</value>
+        			<value>625</value><value>628</value><value>630</value><value>633</value><value>635</value>
+        			<value>638</value><value>640</value><value>643</value><value>645</value><value>648</value>
+        			<value>650</value><value>653</value><value>655</value><value>658</value><value>660</value>
+        			<value>663</value><value>665</value><value>668</value><value>670</value><value>673</value>
+        			<value>675</value><value>678</value><value>680</value><value>681.4</value>
+        		</list>
+        		<list>		
+        			<value>0.01</value><value>0.02493</value><value>0.16273</value><value>0.38225</value><value>0.68988</value>
+        			<value>0.7566</value><value>0.76827</value><value>0.77672</value><value>0.78309</value><value>0.7891</value>
+        			<value>0.80269</value><value>0.81505</value><value>0.84169</value><value>0.86649</value><value>0.90927</value>
+        			<value>0.92262</value><value>0.96667</value><value>0.98803</value><value>1</value><value>0.96444</value>
+        			<value>0.809</value><value>0.72312</value><value>0.54417</value><value>0.39111</value><value>0.17707</value>
+        			<value>0.09278</value><value>0.03173</value><value>0.0149</value><value>0.01</value>
+        		</list>  		
+        	</list>
+        </property>    
+    </bean>
+    <bean id="envisat" class="gov.nasa.miic.common.Instrument">
+        <property name="satID" value="27386"/>
+        <property name="name" value="envisat"/>
+        <property name="fileDurationMask" value="???????????????????????????########?????????"/>
+        <property name="fileNameFormat" value="SCIA_orbit_(\d{8})_(\d{6})_\d{8}_\d{5}\.nc"/>
+        <property name="fileStartDatePattern" value="yyyyMMddHHmmss"/>
+        <property name="type" value="LEO"/>
+        <property name="dataVariables">
+        	<bean class="gov.nasa.miic.opendap.OPeNDAPDASParser" factory-method="GetVariablesFromDAS">
+        		<constructor-arg value="classpath:/gov/nasa/miic/opendap/envisat.das"/>
+        		<constructor-arg value="envisat"/>
+        	</bean>
+        </property>
+        <property name="providerInfo">
+        	<map>
+        		<entry key="REFERENCE_IFOV" value="?sciaspectralconv({latS},{latN},{lonW},{lonE},{RSR})"/>
+        	</map>
+        </property>       
+    </bean>
+</beans>
+
